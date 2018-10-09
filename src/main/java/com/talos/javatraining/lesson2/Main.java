@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static org.apache.commons.lang3.StringUtils.CR;
@@ -32,20 +34,17 @@ public class Main
 		}
 
 		// TODO change this annonymous inner class expression to a lambda expression
-		printer = new Printer<String>()
-		{
-			@Override
-			public void print(Measure<String> measure, Writer writer) throws IOException
-			{
-				writer.write("---" + LF + CR);
-				writer.write("Station " + measure.getStationId() + LF + CR + LF + CR);
-				// TODO change these lambdas to method reference
-				printValue(() -> measure.getHumidity(), "Humidity", writer);
-				printValue(() -> measure.getWindSpeed(), "Wind speed", writer);
-				printValue(() -> measure.getPressure(), "Pressure", writer);
-				printValue(() -> measure.getTemperature(), "Temperature", writer);
-			}
+
+		printer = (measure, writer) -> {
+			writer.write("---" + LF + CR);
+			writer.write("Station " + measure.getStationId() + LF + CR + LF + CR);
+			// TODO change these lambdas to method reference
+			printValue(measure::getHumidity, "Humidity", writer);
+			printValue(measure::getWindSpeed, "Wind speed", writer);
+			printValue(measure::getPressure, "Pressure", writer);
+			printValue(measure::getTemperature, "Temperature", writer);
 		};
+
 	}
 
 	public void readStations(Writer writer) throws IOException
@@ -84,11 +83,18 @@ public class Main
 		 * You would call the makeItReadable method from that method
 		 * Eg: myMethod(measure::getHumidity, result::setHumidity, "unit")
 		 */
-		result.setWindSpeed(makeItReadable(measure.getWindSpeed(), "mph"));
-		result.setTemperature(makeItReadable(measure.getTemperature(), "°C"));
-		result.setPressure(makeItReadable(measure.getPressure(), "pa"));
-		result.setHumidity(makeItReadable(measure.getHumidity(), "%"));
+
+		setProperties(measure::getWindSpeed, result::setWindSpeed, "mph");
+		setProperties(measure::getTemperature, result::setTemperature, "°C");
+		setProperties(measure::getPressure, result::setPressure, "pa");
+		setProperties(measure::getHumidity, result::setHumidity, "%");
+
 		return result;
+	}
+
+	protected void setProperties(Supplier<BigDecimal> getter, Consumer<String> setter, String unit) {
+		BigDecimal obtainedValue = getter.get();
+		setter.accept(makeItReadable(obtainedValue,unit));
 	}
 
 
